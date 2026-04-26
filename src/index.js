@@ -10,6 +10,8 @@ const menu = [
   { id: 2, name: 'Caesar Salad', price: 8.99 },
   { id: 3, name: 'Cheeseburger', price: 10.99 },
 ];
+const orders = [];
+let nextOrderId = 1;
 
 app.get('/menu', (req, res) => {
   res.json(menu);
@@ -21,7 +23,37 @@ app.get('/menu/:id', (req, res) => {
   res.json(item);
 });
 
-// TODO: Add POST /orders endpoint
+app.post('/orders', (req, res) => {
+  const { items } = req.body ?? {};
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'Order must include at least one item' });
+  }
+
+  const hasInvalidItems = items.some(item => {
+    if (!item || typeof item !== 'object') {
+      return true;
+    }
+
+    const menuItem = menu.find(entry => entry.id === item.menuId);
+
+    return !Number.isInteger(item.quantity) || item.quantity < 1 || !menuItem;
+  });
+
+  if (hasInvalidItems) {
+    return res.status(400).json({ error: 'Order contains invalid items' });
+  }
+
+  const order = {
+    orderId: nextOrderId,
+    items,
+  };
+
+  orders.push(order);
+  nextOrderId += 1;
+
+  return res.status(201).json({ orderId: order.orderId });
+});
 
 const PORT = process.env.PORT || 3000;
 if (require.main === module) {
